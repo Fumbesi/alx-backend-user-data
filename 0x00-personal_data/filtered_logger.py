@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" a function filter_datum that
+""" A function filter_datum that
     returns the log message
 """
 
