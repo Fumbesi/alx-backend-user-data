@@ -10,7 +10,7 @@ from typing import List
 import os
 import mysql.connector
 
-PII_FIELDS = ("name", "email", "phone_number", "credit_card", "ssn")  # Replace with the appropriate PII fields
+PII_FIELDS = ("name", "email", "phone", "ssn", "password")  # Replace with the appropriate PII fields
 
 class RedactingFormatter(logging.Formatter):
     """ Redacting Formatter class """
@@ -67,3 +67,21 @@ def get_db() -> mysql.connector.connection.MySQLConnection:
 
     return connector
 
+def main() -> None:
+    """ Retrieve all rows in the users table and display each row under a filtered format """
+    logger = get_logger()
+    db = get_db()
+
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users;")
+    
+    for row in cursor:
+        logger.info("name=%s; email=%s; phone=%s; ssn=%s; password=%s; ip=%s; last_login=%s; user_agent=%s;",
+                    row["name"], row["email"], row["phone"], row["ssn"], row["password"],
+                    row["ip"], row["last_login"], row["user_agent"])
+
+    cursor.close()
+    db.close()
+
+if __name__ == "__main__":
+    main()
