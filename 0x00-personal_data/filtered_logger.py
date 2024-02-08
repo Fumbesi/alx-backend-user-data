@@ -7,6 +7,8 @@
 import logging
 import csv
 from typing import List
+import os
+import mysql.connector
 
 PII_FIELDS = ("name", "email", "phone_number", "credit_card", "ssn")  # Replace with the appropriate PII fields
 
@@ -34,7 +36,6 @@ class RedactingFormatter(logging.Formatter):
         return re.sub(rf"({'|'.join(fields)})=.*?{separator}",
                       rf"\1={redaction}{separator}", message)
 
-
 def get_logger() -> logging.Logger:
     """ Return a configured logging.Logger object """
     logger = logging.getLogger("user_data")
@@ -49,3 +50,20 @@ def get_logger() -> logging.Logger:
     logger.propagate = False
 
     return logger
+
+def get_db() -> mysql.connector.connection.MySQLConnection:
+    """ Return a connector to the database """
+    username = os.getenv("PERSONAL_DATA_DB_USERNAME", "root")
+    password = os.getenv("PERSONAL_DATA_DB_PASSWORD", "")
+    host = os.getenv("PERSONAL_DATA_DB_HOST", "localhost")
+    database = os.getenv("PERSONAL_DATA_DB_NAME")
+
+    connector = mysql.connector.connect(
+        user=username,
+        password=password,
+        host=host,
+        database=database
+    )
+
+    return connector
+
