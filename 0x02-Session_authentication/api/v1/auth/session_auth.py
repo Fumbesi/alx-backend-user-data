@@ -5,9 +5,10 @@ import os
 from flask import request
 from typing import List, TypeVar
 import uuid
+from models.user import User  # Assuming User is defined in models.user
 
 class Auth:
-    """ Class to manage the API authentication """
+     """ Class to manage the API authentication """
 
     def require_auth(self, path: str, excluded_paths: List[str]) -> bool:
         """Check if endpoint requires authentication."""
@@ -15,7 +16,7 @@ class Auth:
             return True
 
         normalized_path = path.rstrip('/') + '/'
-        
+
         for exc in excluded_paths:
             normalized_exc = exc.rstrip('/')
             if not normalized_exc.endswith('*') and normalized_path == normalized_exc:
@@ -57,75 +58,21 @@ class SessionAuth(Auth):
 
         return self.user_id_by_session_id.get(session_id, None)
 
-if __name__ == "__main__":
-    # Switch between Auth and SessionAuth based on environment variable
-    if os.environ.get("AUTH_TYPE") == "session_auth":
-        AuthClass = SessionAuth
-    else:
-        AuthClass = Auth
+    def session_cookie(self, request=None):
+        """ Return the value of the session cookie from the request """
+        if request is None:
+            return None
 
-    # Now use AuthClass as your authentication class
-    auth_instance = AuthClass()
+        session_cookie_name = os.environ.get("SESSION_NAME", "_my_session_id")
+        return request.cookies.get(session_cookie_name, None)
 
-    # Validate inheritance
-    path = "/api/resource"
-    excluded_paths = ["/api/public*", "/api/static*"]
+    def current_user(self, request=None) -> User:
+        """Return a User instance based on a cookie value."""
+        session_id = self.session_cookie(request)
+        if session_id:
+            user_id = self.user_id_for_session_id(session_id)
+            if user_id:
+                # Assuming User.get() is a method to retrieve a User from the database
+                return User.get(user_id)
 
-    # Validate require_auth method
-    requires_auth = auth_instance.require_auth(path, excluded_paths)
-    print(f"Requires Authentication: {requires_auth}")
-
-    # Validate authorization_header method
-    fake_request = {'headers': {'Authorization': 'Bearer token'}}
-    auth_header = auth_instance.authorization_header(request=fake_request)
-    print(f"Authorization Header: {auth_header}")
-
-    # Validate current_user method
-    fake_user = auth_instance.current_user(request=fake_request)
-    print(f"Current User: {fake_user}")
-
-    # Validate SessionAuth create_session and user_id_for_session_id methods
-    session_auth = SessionAuth()
-
-    user_id_1 = "abcde"
-    session_1 = session_auth.create_session(user_id_1)
-    print(f"{user_id_1} => {session_1}: {session_auth.user_id_by_session_id}")
-
-    user_id_2 = "fghij"
-    session_2 = session_auth.create_session(user_id_2)
-    print(f"{user_id_2} => {session_2}: {session_auth.user_id_by_session_id}")
-
-    print("---")
-
-    tmp_session_id = None
-    tmp_user_id = session_auth.user_id_for_session_id(tmp_session_id)
-    print(f"{tmp_session_id} => {tmp_user_id}")
-
-    tmp_session_id = 89
-    tmp_user_id = session_auth.user_id_for_session_id(tmp_session_id)
-    print(f"{tmp_session_id} => {tmp_user_id}")
-
-    tmp_session_id = "doesntexist"
-    tmp_user_id = session_auth.user_id_for_session_id(tmp_session_id)
-    print(f"{tmp_session_id} => {tmp_user_id}")
-
-    print("---")
-
-    tmp_session_id = session_1
-    tmp_user_id = session_auth.user_id_for_session_id(tmp_session_id)
-    print(f"{tmp_session_id} => {tmp_user_id}")
-
-    tmp_session_id = session_2
-    tmp_user_id = session_auth.user_id_for_session_id(tmp_session_id)
-    print(f"{tmp_session_id} => {tmp_user_id}")
-
-    print("---")
-
-    session_1_bis = session_auth.create_session(user_id_1)
-    print(f"{user_id_1} => {session_1_bis}: {session_auth.user_id_by_session_id}")
-
-    tmp_user_id = session_auth.user_id_for_session_id(session_1_bis)
-    print(f"{session_1_bis} => {tmp_user_id}")
-
-    tmp_user_id = session_auth.user_id_for_session_id(session_1)
-    print(f"{session_1} => {tmp_user_id}")
+        return None
