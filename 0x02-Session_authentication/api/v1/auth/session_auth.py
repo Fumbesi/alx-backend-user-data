@@ -4,6 +4,7 @@
 import os
 from flask import request
 from typing import List, TypeVar
+import uuid
 
 class Auth:
     """ Class to manage the API authentication """
@@ -37,11 +38,21 @@ class Auth:
 
 class SessionAuth(Auth):
     """ Class for session-based authentication """
-    pass
+    
+    user_id_by_session_id = {}
+
+    def create_session(self, user_id: str = None) -> str:
+        """Create a Session ID for a user_id."""
+        if user_id is None or not isinstance(user_id, str):
+            return None
+
+        session_id = str(uuid.uuid4())
+        self.user_id_by_session_id[session_id] = user_id
+        return session_id
 
 if __name__ == "__main__":
     # Switch between Auth and SessionAuth based on environment variable
-    if os.environ.get("USE_SESSION_AUTH"):
+    if os.environ.get("AUTH_TYPE") == "session_auth":
         AuthClass = SessionAuth
     else:
         AuthClass = Auth
@@ -66,3 +77,24 @@ if __name__ == "__main__":
     fake_user = auth_instance.current_user(request=fake_request)
     print(f"Current User: {fake_user}")
 
+    # Validate SessionAuth create_session method
+    session_auth = SessionAuth()
+    user_id = None
+    session = session_auth.create_session(user_id)
+    print(f"{user_id} => {session}: {session_auth.user_id_by_session_id}")
+
+    user_id = 89
+    session = session_auth.create_session(user_id)
+    print(f"{user_id} => {session}: {session_auth.user_id_by_session_id}")
+
+    user_id = "abcde"
+    session = session_auth.create_session(user_id)
+    print(f"{user_id} => {session}: {session_auth.user_id_by_session_id}")
+
+    user_id = "fghij"
+    session = session_auth.create_session(user_id)
+    print(f"{user_id} => {session}: {session_auth.user_id_by_session_id}")
+
+    user_id = "abcde"
+    session = session_auth.create_session(user_id)
+    print(f"{user_id} => {session}: {session_auth.user_id_by_session_id}")
